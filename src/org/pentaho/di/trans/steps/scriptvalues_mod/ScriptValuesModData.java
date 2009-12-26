@@ -22,18 +22,8 @@
 package org.pentaho.di.trans.steps.scriptvalues_mod;
 
 
-//import org.mozilla.javascript.Context;
-import javax.script.ScriptContext;
-import javax.script.ScriptEngine;
-//import org.mozilla.javascript.Scriptable;
-
-import javax.script.AbstractScriptEngine;
 import javax.script.Bindings;
-import javax.script.CompiledScript;
-import javax.script.ScriptEngineManager;
-import javax.script.SimpleBindings;
-import javax.script.SimpleScriptContext;
-import javax.script.ScriptException;
+import javax.script.ScriptEngine;
 
 import org.pentaho.di.compatibility.Value;
 import org.pentaho.di.core.row.RowMetaInterface;

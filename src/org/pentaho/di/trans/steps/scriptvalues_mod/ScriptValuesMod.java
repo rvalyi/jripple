@@ -26,12 +26,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Map;
 
-import javax.script.AbstractScriptEngine;
-import javax.script.CompiledScript;
 import javax.script.ScriptContext;
-import javax.script.ScriptEngineManager;
-import javax.script.SimpleBindings;
-import javax.script.SimpleScriptContext;
 import javax.script.ScriptException;
 
 import org.pentaho.di.compatibility.Row;
@@ -172,8 +167,7 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
     	  }
       }
 
-      ScriptEngineManager manager = new ScriptEngineManager();
-      data.cx = manager.getEngineByName("javascript");
+      data.cx = ScriptValuesMetaMod.createNewScriptEngine(getName());
       data.scope = data.cx.getBindings(ScriptContext.ENGINE_SCOPE);
 
       bFirstRun = true;

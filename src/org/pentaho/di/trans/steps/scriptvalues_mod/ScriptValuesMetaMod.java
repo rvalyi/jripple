@@ -472,11 +472,8 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 		
 		ScriptEngine jscx;
 		Bindings jsscope;
-		ScriptEngine jsscript;
 
-		//jscx = ContextFactory.getGlobal().enterContext();
-		ScriptEngineManager manager = new ScriptEngineManager();
-		jscx = manager.getEngineByName("javascript");
+		jscx = createNewScriptEngine(stepinfo.getName());
 		jsscope = jscx.getBindings(ScriptContext.ENGINE_SCOPE);
 			
 		// String strActiveScriptName="";
@@ -943,6 +940,24 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 	 */
 	public void setReplace(boolean[] replace) {
 		this.replace = replace;
+	}
+	
+	/**
+	 * Instanciates the right scripting language interpreter.
+	 * Because Kettle GUI sucks for extensibility, we use the script name extension
+	 * to determine the language rather than add a Combo box. Complain to Pentaho please.
+	 * @param stepName
+	 * @return
+	 */
+	public static ScriptEngine createNewScriptEngine(String stepName) {
+		ScriptEngineManager manager = new ScriptEngineManager();
+		String[] strings = stepName.split("\\.");
+		String extension = strings[strings.length > 0 ? 1 : 0];
+		ScriptEngine scriptEngine = manager.getEngineByName(extension);
+		if (scriptEngine == null) {//falls back to Javascript
+			scriptEngine = manager.getEngineByName("javascript");
+		}
+		return scriptEngine;
 	}
     
 }
