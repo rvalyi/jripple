@@ -177,7 +177,6 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
 
       // Adding the existing Scripts to the Context
       for (int i = 0; i < meta.getNumberOfJSScripts(); i++) {
-        //Scriptable jsR = Context.toObject(jsScripts[i].getScript(), data.scope);
         data.scope.put(jsScripts[i].getScriptName(), jsScripts[i].getScript());
       }
 
@@ -192,10 +191,8 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
         //
         if (meta.isCompatible()) {
           Row v2Row = RowMeta.createOriginalRow(rowMeta, row);
-          //Scriptable jsV2Row = Context.toObject(v2Row, data.scope);
           data.scope.put("row", v2Row); //$NON-NLS-1$
         } else {
-          //Scriptable jsrow = Context.toObject(row, data.scope);
           data.scope.put("row", row); //$NON-NLS-1$
         }
 
@@ -207,24 +204,15 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
 
           if (meta.isCompatible()) {
             data.values_used[i] = valueMeta.createOriginalValue(valueData);
-
-            //Scriptable jsarg = Context.toObject(data.values_used[i], data.scope);
             data.scope.put(valueMeta.getName(), data.values_used[i]);
           } else {
         	Object normalStorageValueData = valueMeta.convertToNormalStorageType(valueData);
-//            Scriptable jsarg;
-//            if (normalStorageValueData != null) {
-//              jsarg = Context.toObject(normalStorageValueData, data.scope);
-//            } else {
-//              jsarg = null;
-//            }
             data.scope.put(valueMeta.getName(), normalStorageValueData);
           }
         }
 
         // also add the meta information for the whole row
         //
-        //Scriptable jsrowMeta = Context.toObject(rowMeta, data.scope);
         data.scope.put("rowMeta", rowMeta); //$NON-NLS-1$
 
         // Modification for Additional Script parsing
@@ -232,7 +220,8 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
         try {
           if (meta.getAddClasses() != null) {
             for (int i = 0; i < meta.getAddClasses().length; i++) {
-              //TODO AKRETION not implemented yet
+              //TODO AKRETION ensure it works
+              data.scope.put(meta.getAddClasses()[i].getJSName(), meta.getAddClasses()[i].getAddObject());
               //Object jsOut = Context.javaToJS(meta.getAddClasses()[i].getAddObject(), data.scope);
               //ScriptableObject.putProperty(data.scope, meta.getAddClasses()[i].getJSName(), jsOut);
             }
@@ -314,7 +303,6 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
       try {
         if (meta.isCompatible()) {
           Row v2Row = RowMeta.createOriginalRow(rowMeta, row);
-          //Scriptable jsV2Row = Context.toObject(v2Row, data.scope);
           data.scope.put("row", v2Row); //$NON-NLS-1$
           v2Row.getUsedValueListeners().add(new ValueUsedListener() {
             public void valueIsUsed(int index, Value value) {
@@ -322,10 +310,10 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
             }
           });
         } else {
-          //Scriptable jsrow = Context.toObject(row, data.scope);
           data.scope.put("row", row); //$NON-NLS-1$
         }
 
+        //Scriptable jsrow = Context.toObject(row, data.scope);
         for (int i = 0; i < data.fields_used.length; i++) {
           ValueMetaInterface valueMeta = rowMeta.getValueMeta(data.fields_used[i]);
           Object valueData = row[data.fields_used[i]];

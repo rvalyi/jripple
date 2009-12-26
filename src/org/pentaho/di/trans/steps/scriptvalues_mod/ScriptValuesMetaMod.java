@@ -507,7 +507,6 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			
 			// Adding the existing Scripts to the Context
 			for(int i=0;i<getNumberOfJSScripts();i++){
-				//Scriptable jsR = Context.toObject(jsScripts[i].getScript(), jsscope);
 				jsscope.put(jsScripts[i].getScriptName(), jsScripts[i].getScript());
 			}
  
@@ -516,7 +515,8 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 				if (getAddClasses()!=null)
                 {
     				for(int i=0;i<getAddClasses().length;i++){
-    					//TODO AKRETION not implemented yet
+    					//TODO AKRETION ensure it works
+    					jsscope.put(getAddClasses()[i].getJSName(), getAddClasses()[i].getAddObject());
     					//Object jsOut = Context.javaToJS(getAddClasses()[i].getAddObject(), jsscope);
     					//ScriptableObject.putProperty(jsscope, getAddClasses()[i].getJSName(), jsOut);
     					//ScriptableObject.putProperty(jsscope, getAddClasses()[i].getJSName(), jsOut);
@@ -553,12 +553,9 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 
 			try{
 				ScriptValuesModDummy dummyStep = new ScriptValuesModDummy(prev, transMeta.getStepFields(stepinfo));
-				//Scriptable jsvalue = Context.toObject(dummyStep, jsscope);
 				jsscope.put("_step_", dummyStep); //$NON-NLS-1$
 
 				Object[] row=new Object[prev.size()];
-   			    //Scriptable jsRowMeta = Context.toObject(prev, jsscope);
-			    //jsscope.put("rowMeta", jsscope, jsRowMeta); //$NON-NLS-1$
    			    jsscope.put("rowMeta", prev); //$NON-NLS-1$
 			    for (int i=0;i<prev.size();i++)
 			    {
@@ -579,27 +576,22 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
                     
                     if (isCompatible()) {
                     	Value value = valueMeta.createOriginalValue(valueData);
-                    	//Scriptable jsarg = Context.toObject(value, jsscope);
 					    jsscope.put(valueMeta.getName(), value);
                     }
                     else {
-                    	//Scriptable jsarg = Context.toObject(valueData, jsscope);
 					    jsscope.put(valueMeta.getName(), valueData);
                     }
 			    }
 			    // Add support for Value class (new Value())
-			    //Scriptable jsval = Context.toObject(Value.class, jsscope);
 			    jsscope.put("Value", Value.class); //$NON-NLS-1$
 
                 // Add the old style row object for compatibility reasons...
                 //
                 if (isCompatible()) {
                 	Row v2Row = RowMeta.createOriginalRow(prev, row);
-                	//Scriptable jsV2Row = Context.toObject(v2Row, jsscope);
                     jsscope.put("row", v2Row); //$NON-NLS-1$
                 }
                 else {
-	                //Scriptable jsRow = Context.toObject(row, jsscope);
 	                jsscope.put("row", row); //$NON-NLS-1$
                 }
             } catch(Exception ev){
@@ -611,7 +603,6 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			try{
 				// Checking for StartScript
 				if(strActiveStartScript != null && strActiveStartScript.length()>0){
-					/* Object startScript =*/ //jscx.evaluateString(jsscope, strActiveStartScript, "trans_Start", 1, null);
 					jscx.eval(strActiveStartScript, jsscope);
 					error_message = "Found Start Script. "+ strActiveStartScriptName+" Processing OK";
 					cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, error_message, stepinfo); //$NON-NLS-1$
@@ -624,7 +615,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			};
 			
 			try{
-				//TODO AKRETION: don't bother we eventual compilation support for now
+				//TODO AKRETION: don't bother with eventual compilation support for now
 				//jsscript=jscx.compileString(strActiveScript, "script", 1, null); //$NON-NLS-1$
 				
 				//cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.ScriptCompiledOK"), stepinfo); //$NON-NLS-1$
@@ -666,7 +657,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 				// Checking End Script
 				try{
 					if(strActiveEndScript != null && strActiveEndScript.length()>0){
-						/* Object endScript = */ jscx.eval(strActiveEndScript, jsscope);//#evaluateString(jsscope, strActiveEndScript, "trans_End", 1, null);
+						/* Object endScript = */ jscx.eval(strActiveEndScript, jsscope);
 						error_message = "Found End Script. "+ strActiveEndScriptName+" Processing OK";
 						cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, error_message, stepinfo); //$NON-NLS-1$
 						remarks.add(cr);
@@ -943,7 +934,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 	}
 	
 	/**
-	 * Instanciates the right scripting language interpreter.
+	 * Instanciates the right scripting language interpreter, falling back to Javascript for backward compat.
 	 * Because Kettle GUI sucks for extensibility, we use the script name extension
 	 * to determine the language rather than add a Combo box. Complain to Pentaho please.
 	 * @param stepName
@@ -952,7 +943,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 	public static ScriptEngine createNewScriptEngine(String stepName) {
 		ScriptEngineManager manager = new ScriptEngineManager();
 		String[] strings = stepName.split("\\.");
-		String extension = strings[strings.length > 0 ? 1 : 0];
+		String extension = strings[strings.length > 0 ? 1 : 0];//skip the script number extension
 		ScriptEngine scriptEngine = manager.getEngineByName(extension);
 		if (scriptEngine == null) {//falls back to Javascript
 			scriptEngine = manager.getEngineByName("javascript");
