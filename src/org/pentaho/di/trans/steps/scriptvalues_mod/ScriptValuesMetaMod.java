@@ -28,12 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.ContextFactory;
-import org.mozilla.javascript.JavaScriptException;
-import org.mozilla.javascript.Script;
-import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.ScriptableObject;
+import javax.script.Bindings;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import javax.script.ScriptContext;
+
 import org.pentaho.di.compatibility.Row;
 import org.pentaho.di.compatibility.Value;
 import org.pentaho.di.core.CheckResult;
@@ -470,13 +470,14 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 		String error_message = ""; //$NON-NLS-1$
 		CheckResult cr;
 		
-		Context jscx;
-		Scriptable jsscope;
-		Script jsscript;
+		ScriptEngine jscx;
+		Bindings jsscope;
+		ScriptEngine jsscript;
 
-		jscx = ContextFactory.getGlobal().enterContext();
-		jsscope = jscx.initStandardObjects(null, false);
-		jscx.setOptimizationLevel(-1);
+		//jscx = ContextFactory.getGlobal().enterContext();
+		ScriptEngineManager manager = new ScriptEngineManager();
+		jscx = manager.getEngineByName("javascript");
+		jsscope = jscx.getBindings(ScriptContext.ENGINE_SCOPE);
 			
 		// String strActiveScriptName="";
 		String strActiveStartScriptName="";
@@ -509,8 +510,8 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			
 			// Adding the existing Scripts to the Context
 			for(int i=0;i<getNumberOfJSScripts();i++){
-				Scriptable jsR = Context.toObject(jsScripts[i].getScript(), jsscope);
-				jsscope.put(jsScripts[i].getScriptName(), jsscope, jsR);
+				//Scriptable jsR = Context.toObject(jsScripts[i].getScript(), jsscope);
+				jsscope.put(jsScripts[i].getScriptName(), jsScripts[i].getScript());
 			}
  
 			// Modification for Additional Script parsing
@@ -518,8 +519,10 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 				if (getAddClasses()!=null)
                 {
     				for(int i=0;i<getAddClasses().length;i++){
-    					Object jsOut = Context.javaToJS(getAddClasses()[i].getAddObject(), jsscope);
-    					ScriptableObject.putProperty(jsscope, getAddClasses()[i].getJSName(), jsOut);
+    					//TODO AKRETION not implemented yet
+    					//Object jsOut = Context.javaToJS(getAddClasses()[i].getAddObject(), jsscope);
+    					//ScriptableObject.putProperty(jsscope, getAddClasses()[i].getJSName(), jsOut);
+    					//ScriptableObject.putProperty(jsscope, getAddClasses()[i].getJSName(), jsOut);
     				}
                 }
 			}catch(Exception e){
@@ -529,21 +532,22 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			}
 			
 			// Adding some default JavaScriptFunctions to the System
-			try {
-				Context.javaToJS(ScriptValuesAddedFunctions.class, jsscope);
-				((ScriptableObject)jsscope).defineFunctionProperties(ScriptValuesAddedFunctions.jsFunctionList, ScriptValuesAddedFunctions.class, ScriptableObject.DONTENUM);
-			} catch (Exception ex) {
-				error_message="Couldn't add Default Functions! Error:"+Const.CR+ex.toString();
-				cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, error_message, stepinfo);
-				remarks.add(cr);
-			};
+			//TODO AKRETION not implemented yet
+//			try {
+//				Context.javaToJS(ScriptValuesAddedFunctions.class, jsscope);
+//				((ScriptableObject)jsscope).defineFunctionProperties(ScriptValuesAddedFunctions.jsFunctionList, ScriptValuesAddedFunctions.class, ScriptableObject.DONTENUM);
+//			} catch (Exception ex) {
+//				error_message="Couldn't add Default Functions! Error:"+Const.CR+ex.toString();
+//				cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, error_message, stepinfo);
+//				remarks.add(cr);
+//			};
 
 			// Adding some Constants to the JavaScript
 			try {
-				jsscope.put("SKIP_TRANSFORMATION", jsscope, Integer.valueOf(ScriptValuesMod.SKIP_TRANSFORMATION));
-				jsscope.put("ABORT_TRANSFORMATION", jsscope, Integer.valueOf(ScriptValuesMod.ABORT_TRANSFORMATION));
-				jsscope.put("ERROR_TRANSFORMATION", jsscope, Integer.valueOf(ScriptValuesMod.ERROR_TRANSFORMATION));
-				jsscope.put("CONTINUE_TRANSFORMATION", jsscope, Integer.valueOf(ScriptValuesMod.CONTINUE_TRANSFORMATION));
+				jsscope.put("SKIP_TRANSFORMATION", Integer.valueOf(ScriptValuesMod.SKIP_TRANSFORMATION));
+				jsscope.put("ABORT_TRANSFORMATION", Integer.valueOf(ScriptValuesMod.ABORT_TRANSFORMATION));
+				jsscope.put("ERROR_TRANSFORMATION", Integer.valueOf(ScriptValuesMod.ERROR_TRANSFORMATION));
+				jsscope.put("CONTINUE_TRANSFORMATION", Integer.valueOf(ScriptValuesMod.CONTINUE_TRANSFORMATION));
 			} catch (Exception ex) {
 				error_message="Couldn't add Transformation Constants! Error:"+Const.CR+ex.toString(); //$NON-NLS-1$
 				cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, error_message, stepinfo);
@@ -552,12 +556,13 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 
 			try{
 				ScriptValuesModDummy dummyStep = new ScriptValuesModDummy(prev, transMeta.getStepFields(stepinfo));
-				Scriptable jsvalue = Context.toObject(dummyStep, jsscope);
-				jsscope.put("_step_", jsscope, jsvalue); //$NON-NLS-1$
+				//Scriptable jsvalue = Context.toObject(dummyStep, jsscope);
+				jsscope.put("_step_", dummyStep); //$NON-NLS-1$
 
 				Object[] row=new Object[prev.size()];
-   			    Scriptable jsRowMeta = Context.toObject(prev, jsscope);
-			    jsscope.put("rowMeta", jsscope, jsRowMeta); //$NON-NLS-1$
+   			    //Scriptable jsRowMeta = Context.toObject(prev, jsscope);
+			    //jsscope.put("rowMeta", jsscope, jsRowMeta); //$NON-NLS-1$
+   			    jsscope.put("rowMeta", prev); //$NON-NLS-1$
 			    for (int i=0;i<prev.size();i++)
 			    {
                     ValueMetaInterface valueMeta = prev.getValueMeta(i);
@@ -577,28 +582,28 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
                     
                     if (isCompatible()) {
                     	Value value = valueMeta.createOriginalValue(valueData);
-                    	Scriptable jsarg = Context.toObject(value, jsscope);
-					    jsscope.put(valueMeta.getName(), jsscope, jsarg);
+                    	//Scriptable jsarg = Context.toObject(value, jsscope);
+					    jsscope.put(valueMeta.getName(), value);
                     }
                     else {
-                    	Scriptable jsarg = Context.toObject(valueData, jsscope);
-					    jsscope.put(valueMeta.getName(), jsscope, jsarg);
+                    	//Scriptable jsarg = Context.toObject(valueData, jsscope);
+					    jsscope.put(valueMeta.getName(), valueData);
                     }
 			    }
 			    // Add support for Value class (new Value())
-			    Scriptable jsval = Context.toObject(Value.class, jsscope);
-			    jsscope.put("Value", jsscope, jsval); //$NON-NLS-1$
+			    //Scriptable jsval = Context.toObject(Value.class, jsscope);
+			    jsscope.put("Value", Value.class); //$NON-NLS-1$
 
                 // Add the old style row object for compatibility reasons...
                 //
                 if (isCompatible()) {
                 	Row v2Row = RowMeta.createOriginalRow(prev, row);
-                	Scriptable jsV2Row = Context.toObject(v2Row, jsscope);
-                    jsscope.put("row", jsscope, jsV2Row); //$NON-NLS-1$
+                	//Scriptable jsV2Row = Context.toObject(v2Row, jsscope);
+                    jsscope.put("row", v2Row); //$NON-NLS-1$
                 }
                 else {
-	                Scriptable jsRow = Context.toObject(row, jsscope);
-	                jsscope.put("row", jsscope, jsRow); //$NON-NLS-1$
+	                //Scriptable jsRow = Context.toObject(row, jsscope);
+	                jsscope.put("row", row); //$NON-NLS-1$
                 }
             } catch(Exception ev){
 				error_message="Couldn't add Input fields to Script! Error:"+Const.CR+ev.toString(); //$NON-NLS-1$
@@ -609,7 +614,8 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			try{
 				// Checking for StartScript
 				if(strActiveStartScript != null && strActiveStartScript.length()>0){
-					/* Object startScript =*/ jscx.evaluateString(jsscope, strActiveStartScript, "trans_Start", 1, null);
+					/* Object startScript =*/ //jscx.evaluateString(jsscope, strActiveStartScript, "trans_Start", 1, null);
+					jscx.eval(strActiveStartScript, jsscope);
 					error_message = "Found Start Script. "+ strActiveStartScriptName+" Processing OK";
 					cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, error_message, stepinfo); //$NON-NLS-1$
 					remarks.add(cr);
@@ -621,14 +627,16 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			};
 			
 			try{
-				jsscript=jscx.compileString(strActiveScript, "script", 1, null); //$NON-NLS-1$
+				//TODO AKRETION: don't bother we eventual compilation support for now
+				//jsscript=jscx.compileString(strActiveScript, "script", 1, null); //$NON-NLS-1$
 				
-				cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.ScriptCompiledOK"), stepinfo); //$NON-NLS-1$
-				remarks.add(cr);
+				//cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.ScriptCompiledOK"), stepinfo); //$NON-NLS-1$
+				//remarks.add(cr);
 
 				try{
 					
-					jsscript.exec(jscx, jsscope);
+					//jsscript.exec(jscx, jsscope);
+					jscx.eval(strActiveScript, jsscope);
 
 					cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.ScriptCompiledOK2"), stepinfo); //$NON-NLS-1$
 					remarks.add(cr);
@@ -646,13 +654,13 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 						}
 						remarks.add(cr);
 					}
-				}catch(JavaScriptException jse){
-					Context.exit();
+				}catch(ScriptException jse){
+					//Context.exit(); TODO AKRETION NOT SURE
 					error_message=BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.CouldNotExecuteScript")+Const.CR+jse.toString(); //$NON-NLS-1$
 					cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, error_message, stepinfo);
 					remarks.add(cr);
 				}catch(Exception e){
-					Context.exit();
+					//Context.exit(); TODO AKRETION NOT SURE
 					error_message=BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.CouldNotExecuteScript2")+Const.CR+e.toString(); //$NON-NLS-1$
 					cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, error_message, stepinfo);
 					remarks.add(cr);
@@ -661,7 +669,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 				// Checking End Script
 				try{
 					if(strActiveEndScript != null && strActiveEndScript.length()>0){
-						/* Object endScript = */ jscx.evaluateString(jsscope, strActiveEndScript, "trans_End", 1, null);
+						/* Object endScript = */ jscx.eval(strActiveEndScript, jsscope);//#evaluateString(jsscope, strActiveEndScript, "trans_End", 1, null);
 						error_message = "Found End Script. "+ strActiveEndScriptName+" Processing OK";
 						cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, error_message, stepinfo); //$NON-NLS-1$
 						remarks.add(cr);
@@ -672,13 +680,13 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 					remarks.add(cr);				
 				};
 			}catch(Exception e){
-				Context.exit();
+				//Context.exit(); TODO AKRETION NOT SURE
 				error_message = BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.CouldNotCompileScript")+Const.CR+e.toString(); //$NON-NLS-1$
 				cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, error_message, stepinfo);
 				remarks.add(cr);
 			}
 		}else{
-			Context.exit();
+			//Context.exit(); TODO AKRETION NOT SURE
 			error_message = BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.CouldNotGetFieldsFromPreviousStep"); //$NON-NLS-1$
 			cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, error_message, stepinfo);
 			remarks.add(cr);
@@ -710,7 +718,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 	}
 	
 
-	public boolean getValue(Scriptable scope, int i, Value res, StringBuffer message)
+	public boolean getValue(Bindings scope, int i, Value res, StringBuffer message)
 	{
 		boolean error_found = false;
 		
@@ -721,7 +729,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			
 			try{
 				
-				Object result = scope.get(fieldname[i], scope);
+				Object result = scope.get(fieldname[i]);
 				if (result!=null){
 					
 					String classname = result.getClass().getName();
@@ -732,7 +740,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 								res.setNull();
 							}else if (classname.equalsIgnoreCase("org.mozilla.javascript.NativeJavaObject")){
 								// Is it a java Value class ?
-								Value v = (Value)Context.jsToJava(result, Value.class);
+								Value v = (Value) result;
 								res.setValue( v.getNumber() );
 							}else{
 								res.setValue( ((Double)result).doubleValue() ); 
@@ -751,7 +759,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 								res.setNull();
 							}else if (classname.equalsIgnoreCase("org.mozilla.javascript.NativeJavaObject")){
 								// Is it a java Value class ?
-								Value v = (Value)Context.jsToJava(result, Value.class);
+								Value v = (Value) result;
 								res.setValue( v.getInteger() );
 							}else{
 								res.setValue( Math.round( ((Double)result).doubleValue() ) ); 
@@ -764,13 +772,13 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 							// Is it a java Value class ?
 							try
 							{
-								Value v = (Value)Context.jsToJava(result, Value.class);
+								Value v = (Value) result;
 								res.setValue( v.getString() );
 							}
 							catch(Exception ev)
 							{
 								// A String perhaps?
-								String s = (String)Context.jsToJava(result, String.class);
+								String s = (String) result;
 								res.setValue( s );
 							}
 						}
@@ -789,7 +797,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 						{
 							if (classname.equalsIgnoreCase("org.mozilla.javascript.NativeDate")) //$NON-NLS-1$
 							{
-								dbl = Context.toNumber(result);
+								dbl = (Double) result;//TODO AKRETION not sure!
 							}
 							else
 							if (classname.equalsIgnoreCase("org.mozilla.javascript.NativeJavaObject")) //$NON-NLS-1$
@@ -797,12 +805,12 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 								// Is it a java Date() class ?
 								try
 								{
-									Date dat = (Date)Context.jsToJava(result, java.util.Date.class);
+									Date dat = (Date) result;
 									dbl = dat.getTime();
 								}
 								catch(Exception e) // Nope, try a Value
 								{
-									Value v = (Value)Context.jsToJava(result, Value.class);
+									Value v = (Value) result;
 									Date dat = v.getDate();
 									if (dat!=null) dbl = dat.getTime();
 									else res.setNull();

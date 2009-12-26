@@ -21,9 +21,20 @@
 
 package org.pentaho.di.trans.steps.scriptvalues_mod;
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Script;
-import org.mozilla.javascript.Scriptable;
+
+//import org.mozilla.javascript.Context;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
+//import org.mozilla.javascript.Scriptable;
+
+import javax.script.AbstractScriptEngine;
+import javax.script.Bindings;
+import javax.script.CompiledScript;
+import javax.script.ScriptEngineManager;
+import javax.script.SimpleBindings;
+import javax.script.SimpleScriptContext;
+import javax.script.ScriptException;
+
 import org.pentaho.di.compatibility.Value;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
@@ -37,9 +48,9 @@ import org.pentaho.di.trans.step.StepDataInterface;
  */
 public class ScriptValuesModData extends BaseStepData implements StepDataInterface
 {
-	public Context cx;
-	public Scriptable scope;
-	public Script script;
+	public ScriptEngine cx;
+	public Bindings scope;
+	public String script;//TODO AKRETION: meant to be a compiled script, we could try to use Compilable
 	
 	public int fields_used[];
 	public Value values_used[];

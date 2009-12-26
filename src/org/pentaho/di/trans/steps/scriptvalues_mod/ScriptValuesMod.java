@@ -26,13 +26,14 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Map;
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.ContextFactory;
-import org.mozilla.javascript.EvaluatorException;
-import org.mozilla.javascript.Script;
-import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.ScriptableObject;
-import org.mozilla.javascript.UniqueTag;
+import javax.script.AbstractScriptEngine;
+import javax.script.CompiledScript;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngineManager;
+import javax.script.SimpleBindings;
+import javax.script.SimpleScriptContext;
+import javax.script.ScriptException;
+
 import org.pentaho.di.compatibility.Row;
 import org.pentaho.di.compatibility.Value;
 import org.pentaho.di.compatibility.ValueUsedListener;
@@ -95,7 +96,7 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
 
   // public static Row insertRow;
 
-  public Script script;
+  public String script;//TODO AKRETION should be compiled script actually
 
   public ScriptValuesMod(StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta,
       Trans trans) {
@@ -171,23 +172,23 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
     	  }
       }
 
-      data.cx = ContextFactory.getGlobal().enterContext();
-      data.cx.setOptimizationLevel(9);
-      data.scope = data.cx.initStandardObjects(null, false);
+      ScriptEngineManager manager = new ScriptEngineManager();
+      data.cx = manager.getEngineByName("javascript");
+      data.scope = data.cx.getBindings(ScriptContext.ENGINE_SCOPE);
 
       bFirstRun = true;
 
-      Scriptable jsvalue = Context.toObject(this, data.scope);
-      data.scope.put("_step_", data.scope, jsvalue); //$NON-NLS-1$
+      //Scriptable jsvalue = Context.toObject(this, data.scope);
+      data.scope.put("_step_", this); //$NON-NLS-1$
 
       // Adding the existing Scripts to the Context
       for (int i = 0; i < meta.getNumberOfJSScripts(); i++) {
-        Scriptable jsR = Context.toObject(jsScripts[i].getScript(), data.scope);
-        data.scope.put(jsScripts[i].getScriptName(), data.scope, jsR);
+        //Scriptable jsR = Context.toObject(jsScripts[i].getScript(), data.scope);
+        data.scope.put(jsScripts[i].getScriptName(), jsScripts[i].getScript());
       }
 
       // Adding the Name of the Transformation to the Context
-      data.scope.put("_TransformationName_", data.scope, this.getName());
+      data.scope.put("_TransformationName_", this.getName());
 
       try {
         // add these now (they will be re-added later) to make compilation succeed
@@ -197,11 +198,11 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
         //
         if (meta.isCompatible()) {
           Row v2Row = RowMeta.createOriginalRow(rowMeta, row);
-          Scriptable jsV2Row = Context.toObject(v2Row, data.scope);
-          data.scope.put("row", data.scope, jsV2Row); //$NON-NLS-1$
+          //Scriptable jsV2Row = Context.toObject(v2Row, data.scope);
+          data.scope.put("row", v2Row); //$NON-NLS-1$
         } else {
-          Scriptable jsrow = Context.toObject(row, data.scope);
-          data.scope.put("row", data.scope, jsrow); //$NON-NLS-1$
+          //Scriptable jsrow = Context.toObject(row, data.scope);
+          data.scope.put("row", row); //$NON-NLS-1$
         }
 
         // Add the used fields...
@@ -213,32 +214,33 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
           if (meta.isCompatible()) {
             data.values_used[i] = valueMeta.createOriginalValue(valueData);
 
-            Scriptable jsarg = Context.toObject(data.values_used[i], data.scope);
-            data.scope.put(valueMeta.getName(), data.scope, jsarg);
+            //Scriptable jsarg = Context.toObject(data.values_used[i], data.scope);
+            data.scope.put(valueMeta.getName(), data.values_used[i]);
           } else {
         	Object normalStorageValueData = valueMeta.convertToNormalStorageType(valueData);
-            Scriptable jsarg;
-            if (normalStorageValueData != null) {
-              jsarg = Context.toObject(normalStorageValueData, data.scope);
-            } else {
-              jsarg = null;
-            }
-            data.scope.put(valueMeta.getName(), data.scope, jsarg);
+//            Scriptable jsarg;
+//            if (normalStorageValueData != null) {
+//              jsarg = Context.toObject(normalStorageValueData, data.scope);
+//            } else {
+//              jsarg = null;
+//            }
+            data.scope.put(valueMeta.getName(), normalStorageValueData);
           }
         }
 
         // also add the meta information for the whole row
         //
-        Scriptable jsrowMeta = Context.toObject(rowMeta, data.scope);
-        data.scope.put("rowMeta", data.scope, jsrowMeta); //$NON-NLS-1$
+        //Scriptable jsrowMeta = Context.toObject(rowMeta, data.scope);
+        data.scope.put("rowMeta", rowMeta); //$NON-NLS-1$
 
         // Modification for Additional Script parsing
         //
         try {
           if (meta.getAddClasses() != null) {
             for (int i = 0; i < meta.getAddClasses().length; i++) {
-              Object jsOut = Context.javaToJS(meta.getAddClasses()[i].getAddObject(), data.scope);
-              ScriptableObject.putProperty(data.scope, meta.getAddClasses()[i].getJSName(), jsOut);
+              //TODO AKRETION not implemented yet
+              //Object jsOut = Context.javaToJS(meta.getAddClasses()[i].getAddObject(), data.scope);
+              //ScriptableObject.putProperty(data.scope, meta.getAddClasses()[i].getJSName(), jsOut);
             }
           }
         } catch (Exception e) {
@@ -246,23 +248,24 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
         }
 
         // Adding some default JavaScriptFunctions to the System
-        try {
-          Context.javaToJS(ScriptValuesAddedFunctions.class, data.scope);
-          ((ScriptableObject) data.scope).defineFunctionProperties(ScriptValuesAddedFunctions.jsFunctionList,
-              ScriptValuesAddedFunctions.class, ScriptableObject.DONTENUM);
-        } catch (Exception ex) {
-          // System.out.println(ex.toString());
-          throw new KettleValueException(BaseMessages.getString(PKG, "ScriptValuesMod.Log.CouldNotAddDefaultFunctions"), ex); //$NON-NLS-1$
-        }
-        ;
+      //TODO AKRETION not implemented yet
+//        try {
+//          Context.javaToJS(ScriptValuesAddedFunctions.class, data.scope);
+//          ((ScriptableObject) data.scope).defineFunctionProperties(ScriptValuesAddedFunctions.jsFunctionList,
+//              ScriptValuesAddedFunctions.class, ScriptableObject.DONTENUM);
+//        } catch (Exception ex) {
+//          // System.out.println(ex.toString());
+//          throw new KettleValueException(BaseMessages.getString(PKG, "ScriptValuesMod.Log.CouldNotAddDefaultFunctions"), ex); //$NON-NLS-1$
+//        }
+//        ;
 
         // Adding some Constants to the JavaScript
         try {
 
-          data.scope.put("SKIP_TRANSFORMATION", data.scope, Integer.valueOf(SKIP_TRANSFORMATION));
-          data.scope.put("ABORT_TRANSFORMATION", data.scope, Integer.valueOf(ABORT_TRANSFORMATION));
-          data.scope.put("ERROR_TRANSFORMATION", data.scope, Integer.valueOf(ERROR_TRANSFORMATION));
-          data.scope.put("CONTINUE_TRANSFORMATION", data.scope, Integer.valueOf(CONTINUE_TRANSFORMATION));
+          data.scope.put("SKIP_TRANSFORMATION", Integer.valueOf(SKIP_TRANSFORMATION));
+          data.scope.put("ABORT_TRANSFORMATION", Integer.valueOf(ABORT_TRANSFORMATION));
+          data.scope.put("ERROR_TRANSFORMATION", Integer.valueOf(ERROR_TRANSFORMATION));
+          data.scope.put("CONTINUE_TRANSFORMATION", Integer.valueOf(CONTINUE_TRANSFORMATION));
 
         } catch (Exception ex) {
           // System.out.println("Exception Adding the Constants " + ex.toString());
@@ -273,8 +276,9 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
         try {
           // Checking for StartScript
           if (strStartScript != null && strStartScript.length() > 0) {
-            Script startScript = data.cx.compileString(strStartScript, "trans_Start", 1, null);
-            startScript.exec(data.cx, data.scope);
+            //Script startScript = data.cx.compileString(strStartScript, "trans_Start", 1, null);
+            //startScript.exec(data.cx, data.scope);
+            data.cx.eval(strStartScript, data.scope);
             if (log.isDetailed())
               logDetailed(("Start Script found!"));
           } else {
@@ -287,7 +291,9 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
 
         }
         // Now Compile our Script
-        data.script = data.cx.compileString(strTransformScript, "script", 1, null);
+        //data.script = data.cx.compileString(strTransformScript, "script", 1, null);
+        //TODO AKRETION no compilation explicit support for now
+        data.script = strTransformScript;
       } catch (Exception e) {
         throw new KettleValueException(BaseMessages.getString(PKG, "ScriptValuesMod.Log.CouldNotCompileJavascript"), e);
       }
@@ -314,16 +320,16 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
       try {
         if (meta.isCompatible()) {
           Row v2Row = RowMeta.createOriginalRow(rowMeta, row);
-          Scriptable jsV2Row = Context.toObject(v2Row, data.scope);
-          data.scope.put("row", data.scope, jsV2Row); //$NON-NLS-1$
+          //Scriptable jsV2Row = Context.toObject(v2Row, data.scope);
+          data.scope.put("row", v2Row); //$NON-NLS-1$
           v2Row.getUsedValueListeners().add(new ValueUsedListener() {
             public void valueIsUsed(int index, Value value) {
               usedRowValues.put(index, value);
             }
           });
         } else {
-          Scriptable jsrow = Context.toObject(row, data.scope);
-          data.scope.put("row", data.scope, jsrow); //$NON-NLS-1$
+          //Scriptable jsrow = Context.toObject(row, data.scope);
+          data.scope.put("row", row); //$NON-NLS-1$
         }
 
         for (int i = 0; i < data.fields_used.length; i++) {
@@ -333,35 +339,36 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
           if (meta.isCompatible()) {
             data.values_used[i] = valueMeta.createOriginalValue(valueData);
 
-            Scriptable jsarg = Context.toObject(data.values_used[i], data.scope);
-            data.scope.put(valueMeta.getName(), data.scope, jsarg);
+            //Scriptable jsarg = Context.toObject(data.values_used[i], data.scope);
+            data.scope.put(valueMeta.getName(), data.values_used[i]);
           } else {
         	Object normalStorageValueData = valueMeta.convertToNormalStorageType(valueData); 
-            Scriptable jsarg;
-            if (normalStorageValueData != null) {
-              jsarg = Context.toObject(normalStorageValueData, data.scope);
-            } else {
-              jsarg = null;
-            }
-            data.scope.put(valueMeta.getName(), data.scope, jsarg);
+//            Scriptable jsarg;
+//            if (normalStorageValueData != null) {
+//              jsarg = Context.toObject(normalStorageValueData, data.scope);
+//            } else {
+//              jsarg = null;
+//            }
+            data.scope.put(valueMeta.getName(), normalStorageValueData);
           }
         }
 
         // also add the meta information for the hole row
-        Scriptable jsrowMeta = Context.toObject(rowMeta, data.scope);
-        data.scope.put("rowMeta", data.scope, jsrowMeta); //$NON-NLS-1$
+        //Scriptable jsrowMeta = Context.toObject(rowMeta, data.scope);
+        data.scope.put("rowMeta", rowMeta); //$NON-NLS-1$
       } catch (Exception e) {
         throw new KettleValueException(BaseMessages.getString(PKG, "ScriptValuesMod.Log.UnexpectedeError"), e); //$NON-NLS-1$ //$NON-NLS-2$				
       }
 
       // Executing our Script
-      data.script.exec(data.cx, data.scope);
+      data.cx.eval(data.script, data.scope);
+      //data.script.exec(data.cx, data.scope);
 
       if (bFirstRun) {
         bFirstRun = false;
         // Check if we had a Transformation Status
-        Object tran_stat = data.scope.get("trans_Status", data.scope);
-        if (tran_stat != ScriptableObject.NOT_FOUND) {
+        Object tran_stat = data.scope.get("trans_Status");
+        if (tran_stat != null) {//TODO AKRETION not sure: != ScriptableObject.NOT_FOUND
           bWithTransStat = true;
           if (log.isDetailed())
             logDetailed(("tran_Status found. Checking transformation status while script execution.")); //$NON-NLS-1$ //$NON-NLS-2$
@@ -373,7 +380,7 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
       }
 
       if (bWithTransStat) {
-        iTranStat = (int) Context.toNumber(data.scope.get("trans_Status", data.scope));
+        iTranStat = (Integer) data.scope.get("trans_Status");//TODO ARETION not sure the casting is correct
       } else {
         iTranStat = CONTINUE_TRANSFORMATION;
       }
@@ -381,7 +388,7 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
       if (iTranStat == CONTINUE_TRANSFORMATION) {
         bRC = true;
         for (int i = 0; i < meta.getFieldname().length; i++) {
-          Object result = data.scope.get(meta.getFieldname()[i], data.scope);
+          Object result = data.scope.get(meta.getFieldname()[i]);
           Object valueData = getValueFromJScript(result, i);
           if (data.replaceIndex[i]<0) {
         	  outputRow[outputIndex++] = valueData;
@@ -418,14 +425,14 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
             break;
           case ABORT_TRANSFORMATION:
             if (data.cx != null)
-              Context.exit();
+              //Context.exit(); TODO AKRETION not sure
             stopAll();
             setOutputDone();
             bRC = false;
             break;
           case ERROR_TRANSFORMATION:
             if (data.cx != null)
-              Context.exit();
+            	//Context.exit(); TODO AKRETION not sure
             setErrors(1);
             stopAll();
             bRC = false;
@@ -456,15 +463,15 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
               } else if (classType.equalsIgnoreCase("org.mozilla.javascript.NativeJavaObject")) {
                 try {
                   // Is it a java Value class ?
-                  Value v = (Value) Context.jsToJava(result, Value.class);
+                  Value v = (Value) result;
                   return v.getNumber();
                 } catch (Exception e) {
-                  String string = Context.toString(result);
+                  String string = (String) result;
                   return new Double(Double.parseDouble(Const.trim(string)));
                 }
               } else if (classType.equalsIgnoreCase("org.mozilla.javascript.NativeNumber")) {
-                Number nb = Context.toNumber(result);
-                return new Double(nb.doubleValue());
+                Number nb = (Number) result;
+                return new Double(nb.doubleValue());//TODO AKRETION not sure
               } else {
                 Number nb = (Number) result;
                 return new Double(nb.doubleValue());
@@ -486,21 +493,22 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
               } else if (classType.equalsIgnoreCase("org.mozilla.javascript.Undefined")) {
                 return null;
               } else if (classType.equalsIgnoreCase("org.mozilla.javascript.NativeNumber")) {
-                Number nb = Context.toNumber(result);
+                Number nb = (Number) result;//TODO AKRETION not sure
                 return new Long(nb.longValue());
               } else if (classType.equalsIgnoreCase("org.mozilla.javascript.NativeJavaObject")) {
                 // Is it a Value?
                 //
                 try {
-                  Value value = (Value) Context.jsToJava(result, Value.class);
+                  Value value = (Value) result;
                   return value.getInteger();
                 } catch (Exception e2) {
-                  String string = Context.toString(result);
+                  String string = (String) result;
                   return new Long(Long.parseLong(Const.trim(string)));
                 }
-              } else if (classType.equalsIgnoreCase("org.mozilla.javascript.UniqueTag")) {
+              } /*else if (classType.equalsIgnoreCase("org.mozilla.javascript.UniqueTag")) {
+              //TODO AKRETION NOT implemented
                 return Long.valueOf(Long.parseLong(((UniqueTag) result).toString()));
-              } else {
+              }*/ else {
                 return Long.valueOf(Long.parseLong(result.toString()));
               }
 
@@ -509,17 +517,17 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
                   classType.equalsIgnoreCase("org.mozilla.javascript.Undefined")) {
                 // Is it a java Value class ?
                 try {
-                  Value v = (Value) Context.jsToJava(result, Value.class);
+                  Value v = (Value) result;
                   return v.toString();
                 } catch (Exception ev) {
                   // convert to a string should work in most cases...
                   //
-                  String string = (String) Context.toString(result);
+                  String string = (String) result;
                   return string;
                 }
               } else {
                 // A String perhaps?
-                String string = (String) Context.toString(result);
+                String string = (String) result;
                 return string;
               }
 
@@ -529,22 +537,22 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
                 return null;
               } else {
                 if (classType.equalsIgnoreCase("org.mozilla.javascript.NativeDate")) {
-                  dbl = Context.toNumber(result);
+                  dbl = (Double) result;//TODO AKRETION not sure
                 } else if (classType.equalsIgnoreCase("org.mozilla.javascript.NativeJavaObject")
                     || classType.equalsIgnoreCase("java.util.Date")) {
                   // Is it a java Date() class ?
                   try {
-                    Date dat = (Date) Context.jsToJava(result, java.util.Date.class);
+                    Date dat = (Date) result;
                     dbl = dat.getTime();
                   } catch (Exception e) {
                     // Is it a Value?
                     //
                     try {
-                      Value value = (Value) Context.jsToJava(result, Value.class);
+                      Value value = (Value) result;
                       return value.getDate();
                     } catch (Exception e2) {
                       try {
-                        String string = (String) Context.toString(result);
+                        String string = (String) result;
                         return XMLHandler.stringToDate(string);
                       } catch (Exception e3) {
                         throw new KettleValueException("Can't convert a string to a date");
@@ -554,7 +562,7 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
                 } else if (classType.equalsIgnoreCase("java.lang.Double")) {
                   dbl = ((Double) result).doubleValue();
                 } else {
-                  String string = (String) Context.jsToJava(result, String.class);
+                  String string = (String) result;
                   dbl = Double.parseDouble(string);
                 }
                 long lng = Math.round(dbl);
@@ -569,22 +577,22 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
               if (classType.equalsIgnoreCase("org.mozilla.javascript.Undefined")) {
                 return null;
               } else if (classType.equalsIgnoreCase("org.mozilla.javascript.NativeNumber")) {
-                Number nb = Context.toNumber(result);
+                Number nb = (Number) result;//TODO AKRETION not sure
                 return new BigDecimal(nb.longValue());
               } else if (classType.equalsIgnoreCase("org.mozilla.javascript.NativeJavaObject")) {
                 // Is it a BigDecimal class ?
                 try {
-                  BigDecimal bd = (BigDecimal) Context.jsToJava(result, BigDecimal.class);
+                  BigDecimal bd = (BigDecimal) result;
                   return bd;
                 } catch (Exception e) {
                   try {
-                    Value v = (Value) Context.jsToJava(result, Value.class);
+                    Value v = (Value) result;
                     if (!v.isNull())
                       return v.getBigNumber();
                     else
                       return null;
                   } catch (Exception e2) {
-                    String string = (String) Context.jsToJava(result, String.class);
+                    String string = (String) result;
                     return new BigDecimal(string);
                   }
                 }
@@ -605,7 +613,7 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
               }
 
             case ValueMetaInterface.TYPE_BINARY: {
-              return Context.jsToJava(result, byte[].class);
+              return result;//TODO AKRETION not sure //Context.jsToJava(result, byte[].class);
             }
             case ValueMetaInterface.TYPE_NONE: {
               throw new RuntimeException("No data output data type was specified for new field [" + meta.getFieldname()[i]
@@ -643,8 +651,9 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
         if (data.cx != null) {
           // Checking for EndScript
           if (strEndScript != null && strEndScript.length() > 0) {
-            Script endScript = data.cx.compileString(strEndScript, "trans_End", 1, null);
-            endScript.exec(data.cx, data.scope);
+            //Script endScript = data.cx.compileString(strEndScript, "trans_End", 1, null);
+            //endScript.exec(data.cx, data.scope);
+        	data.cx.eval(strEndScript, data.scope);
             if (log.isDetailed())
               logDetailed(("End Script found!"));
           } else {
@@ -660,7 +669,7 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
       }
 
       if (data.cx != null)
-        Context.exit();
+    	//Context.exit(); TODO AKRETION not sure
       setOutputDone();
       return false;
     }
@@ -670,9 +679,9 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
       addValues(getInputRowMeta(), r);
     } catch (KettleValueException e) {
       String location = null;
-      if (e.getCause() instanceof EvaluatorException) {
-        EvaluatorException ee = (EvaluatorException) e.getCause();
-        location = "--> " + ee.lineNumber() + ":" + ee.columnNumber(); // $NON-NLS-1$ $NON-NLS-2$  
+      if (e.getCause() instanceof ScriptException) {
+    	  ScriptException ee = (ScriptException) e.getCause();
+        location = "--> " + ee.getLineNumber () + ":" + ee.getColumnNumber(); // $NON-NLS-1$ $NON-NLS-2$  
       }
 
       if (getStepMeta().isDoingErrorHandling()) {
@@ -718,7 +727,8 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
   public void dispose(StepMetaInterface smi, StepDataInterface sdi) {
     try {
       if (data.cx != null)
-        Context.exit();
+    	return;
+    	//Context.exit(); TODO AKRETION not sure
     } catch (Exception er) {
       // Eat this error, it's typically : "Calling Context.exit without previous Context.enter"
       // logError(BaseMessages.getString(PKG, "System.Log.UnexpectedError"), er);
