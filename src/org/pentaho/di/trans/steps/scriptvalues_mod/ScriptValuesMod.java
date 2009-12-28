@@ -320,8 +320,6 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
 
           if (meta.isCompatible()) {
             data.values_used[i] = valueMeta.createOriginalValue(valueData);
-
-            //Scriptable jsarg = Context.toObject(data.values_used[i], data.scope);
             data.scope.put(valueMeta.getName(), data.values_used[i]);
           } else {
         	Object normalStorageValueData = valueMeta.convertToNormalStorageType(valueData); 
@@ -424,7 +422,7 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
         // TODO: kick this "ERROR handling" junk out now that we have solid error handling in place.
         //
       }
-    } catch (Exception e) {
+    } catch (ScriptException e) {
       throw new KettleValueException(BaseMessages.getString(PKG, "ScriptValuesMod.Log.JavascriptError"), e); //$NON-NLS-1$
     }
     return bRC;
