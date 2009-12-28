@@ -18,16 +18,25 @@ Why?
 Kettle + Scripting rocks. The script abililty of Kettle is among the most powerfull features, very handy to do flexible operations.
 However, Kettle was limited to Javascript Rhino engine.
 
-Thanks to my rewrite it's now possible to use ['ANY' of the JSR223 languages: https://scripting.dev.java.net/](https://scripting.dev.java.net/), including JRuby, Jython, Groovy...
 
+What works?
+------------
+
+Thanks to my rewrite it's now possible to use ['ANY' of the JSR223 languages: https://scripting.dev.java.net/](https://scripting.dev.java.net/), including JRuby, Jython, Groovy...
 Secret goal: have a flexible killer OpenERP Kettle connector that uses the [OOOR Connector](http://github.com/rvalyi/ooor) uynder the hood for unlimited flexibility.
+I tested reading and writing datas in Kettle with the following types, with both JRuby and Jython: Boolean, String, Integer, Number, Date. I'm not sure it works for the other types.
+JRuby example:
+<img src="http://docs.google.com/File?id=ajb639cjf9fb_10cvmpcsdq_b" />
+
+Jython example:
+<img src="http://docs.google.com/File?id=ajb639cjf9fb_11f6drj5cp_b" />
 
 
 Requirements
 ------------
 
 - Only tested with Kettle trunk (v4 dev)
-- requires Java 6 minimuml
+- requires Java 6 minimum
 - not yet packaged (waiting for a position from Pentaho: will they integrate my contrib (excellent occasion to clean up that 'not optimal code' or should we pakage it as an extra module), so currently you should recompile it yourself to use it.
 
 
