@@ -941,6 +941,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 	 * @return
 	 */
 	public static ScriptEngine createNewScriptEngine(String stepName) {
+		System.setProperty("org.jruby.embed.localvariable.behavior", "persistent");//required for JRuby, transparent for others
 		ScriptEngineManager manager = new ScriptEngineManager();
 		String[] strings = stepName.split("\\.");
 		String extension = strings[strings.length > 0 ? 1 : 0];//skip the script number extension
