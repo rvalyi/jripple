@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.script.Bindings;
+import javax.script.Compilable;
+import javax.script.CompiledScript;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -472,6 +474,7 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 		
 		ScriptEngine jscx;
 		Bindings jsscope;
+		CompiledScript jsscript;
 
 		jscx = createNewScriptEngine(stepinfo.getName());
 		jsscope = jscx.getBindings(ScriptContext.ENGINE_SCOPE);
@@ -615,16 +618,14 @@ public class ScriptValuesMetaMod extends BaseStepMeta implements StepMetaInterfa
 			};
 			
 			try{
-				//TODO AKRETION: don't bother with eventual compilation support for now
-				//jsscript=jscx.compileString(strActiveScript, "script", 1, null); //$NON-NLS-1$
+				jsscript = ((Compilable) jscx).compile(strActiveScript);
 				
 				//cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.ScriptCompiledOK"), stepinfo); //$NON-NLS-1$
 				//remarks.add(cr);
 
 				try{
 					
-					//jsscript.exec(jscx, jsscope);
-					jscx.eval(strActiveScript, jsscope);
+					jsscript.eval(jsscope);
 
 					cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "ScriptValuesMetaMod.CheckResult.ScriptCompiledOK2"), stepinfo); //$NON-NLS-1$
 					remarks.add(cr);

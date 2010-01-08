@@ -26,6 +26,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Map;
 
+import javax.script.Compilable;
 import javax.script.ScriptContext;
 import javax.script.ScriptException;
 
@@ -274,9 +275,9 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
 
         }
         // Now Compile our Script
-        //data.script = data.cx.compileString(strTransformScript, "script", 1, null);
-        //TODO AKRETION no compilation explicit support for now
-        data.script = strTransformScript;
+        //alternativly you could also support non compilable JSR223 languages, see how we were doing before:
+        // http://github.com/rvalyi/jripple/blob/e6190fd89014a49b0faffae68c75762be124d899/src/org/pentaho/di/trans/steps/scriptvalues_mod/ScriptValuesMod.java 
+        data.script = ((Compilable) data.cx).compile(strTransformScript);
       } catch (Exception e) {
         throw new KettleValueException(BaseMessages.getString(PKG, "ScriptValuesMod.Log.CouldNotCompileJavascript"), e);
       }
@@ -339,10 +340,8 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
       } catch (Exception e) {
         throw new KettleValueException(BaseMessages.getString(PKG, "ScriptValuesMod.Log.UnexpectedeError"), e); //$NON-NLS-1$ //$NON-NLS-2$				
       }
-
-      // Executing our Script
-      data.cx.eval(data.script, data.scope);
-      //data.script.exec(data.cx, data.scope);
+      
+      data.script.eval(data.scope);
 
       if (bFirstRun) {
         bFirstRun = false;

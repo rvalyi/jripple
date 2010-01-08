@@ -23,6 +23,7 @@ package org.pentaho.di.trans.steps.scriptvalues_mod;
 
 
 import javax.script.Bindings;
+import javax.script.CompiledScript;
 import javax.script.ScriptEngine;
 
 import org.pentaho.di.compatibility.Value;
@@ -40,7 +41,7 @@ public class ScriptValuesModData extends BaseStepData implements StepDataInterfa
 {
 	public ScriptEngine cx;
 	public Bindings scope;
-	public String script;//TODO AKRETION: meant to be a compiled script, we could try to use Compilable
+	public CompiledScript script;
 	
 	public int fields_used[];
 	public Value values_used[];
