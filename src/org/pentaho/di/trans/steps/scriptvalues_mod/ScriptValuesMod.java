@@ -27,6 +27,7 @@ import java.util.Hashtable;
 import java.util.Map;
 
 import javax.script.Compilable;
+import javax.script.CompiledScript;
 import javax.script.ScriptContext;
 import javax.script.ScriptException;
 
@@ -260,9 +261,8 @@ public class ScriptValuesMod extends BaseStep implements StepInterface, ScriptVa
         try {
           // Checking for StartScript
           if (strStartScript != null && strStartScript.length() > 0) {
-            //Script startScript = data.cx.compileString(strStartScript, "trans_Start", 1, null);
-            //startScript.exec(data.cx, data.scope);
-            data.cx.eval(strStartScript, data.scope);
+			CompiledScript startScript = ((Compilable) data.cx).compile(strStartScript);
+			startScript.eval(data.scope);
             if (log.isDetailed())
               logDetailed(("Start Script found!"));
           } else {
