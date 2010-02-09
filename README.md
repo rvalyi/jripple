@@ -23,7 +23,8 @@ What works?
 ------------
 
 Thanks to my rewrite it's now possible to use ['ANY' of the JSR223 languages: https://scripting.dev.java.net/](https://scripting.dev.java.net/), including JRuby, Jython, Groovy...
-Secret goal: have a flexible killer OpenERP Kettle connector that uses the [OOOR Connector](http://github.com/rvalyi/ooor) uynder the hood for unlimited flexibility.
+Secret goal: have a flexible killer [OpenERP](http://openerp.com/) Kettle connector that uses the [OOOR Connector](http://github.com/rvalyi/ooor) under the hood for unlimited flexibility.
+See our [TerminatOOOR](http://github.com/rvalyi/terminatooor) Kettle plugin to extract and load data from/to OpenERP.
 I tested reading and writing datas in Kettle with the following types, with both JRuby and Jython: Boolean, String, Integer, Number, Date. I'm not sure it works for the other types.
 JRuby example:
 <img src="http://docs.google.com/File?id=ajb639cjf9fb_10cvmpcsdq_b" />
